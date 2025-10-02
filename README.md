@@ -4,6 +4,7 @@
 
 - docker (28.4.0)
 - go (1.23.3)
+- rust (1.90.0)
 - java
 - node (v20.18.1)
 - dotnet
@@ -24,7 +25,7 @@ retorna {"id":"..."}
 
 ### decode
 >
-> curl http://localhost:8080/decode/id
+> curl http://localhost:8080/decode/{id}
 
 ### GO
 
@@ -48,3 +49,11 @@ Don't forget to add the Go into your PATH
 
 --- generate swagger ---
 > swag init
+
+
+## Rust
+
+> cargo update
+> cargo build
+> cargo run
+
