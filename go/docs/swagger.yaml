@@ -1,0 +1,76 @@
+basePath: /
+definitions:
+  main.EncodeRequest:
+    properties:
+      batch:
+        type: string
+      date:
+        type: string
+      time:
+        type: string
+    required:
+    - batch
+    - date
+    - time
+    type: object
+  main.EncodeResponse:
+    properties:
+      id:
+        type: string
+    type: object
+  main.Token:
+    properties:
+      batch:
+        type: string
+      created_at:
+        type: string
+      date:
+        type: string
+      id:
+        type: string
+      time:
+        type: string
+    type: object
+host: localhost:8080
+info:
+  contact: {}
+  description: API em Go para encriptar/decriptar dados com Postgres
+  title: API Encode/Decode Example
+  version: "1.0"
+paths:
+  /decode/{id}:
+    get:
+      parameters:
+      - description: Token ID
+        in: path
+        name: id
+        required: true
+        type: string
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.Token'
+      summary: Decode data
+  /encode:
+    post:
+      consumes:
+      - application/json
+      parameters:
+      - description: Dados
+        in: body
+        name: data
+        required: true
+        schema:
+          $ref: '#/definitions/main.EncodeRequest'
+      produces:
+      - application/json
+      responses:
+        "200":
+          description: OK
+          schema:
+            $ref: '#/definitions/main.EncodeResponse'
+      summary: Encode data
+swagger: "2.0"
