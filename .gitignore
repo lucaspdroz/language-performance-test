@@ -68,11 +68,20 @@ Thumbs.db
 # Cargo generated files
 Cargo.lock
 
-# IDEs and editors
-.vscode/
+# Rust / Cargo
+target/
+**/*.rs.bk
+
+# Optional: if you don’t want to commit lockfile for libraries
+# (keep Cargo.lock for binaries!)
+# Cargo.lock
+
+# IDEs / Editors
 .idea/
+.vscode/
 *.swp
 *.swo
+
 
 # Logs
 *.log
