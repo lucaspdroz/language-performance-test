@@ -1,0 +1,1 @@
+/Users/lucasdrozdowski/Downloads/www/test-languages-api/language-performance-test/rust/target/debug/rust: /Users/lucasdrozdowski/Downloads/www/test-languages-api/language-performance-test/rust/src/main.rs
