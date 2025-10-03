@@ -7,7 +7,7 @@
 - rust (1.90.0)
 - java
 - node (v20.18.1)
-- dotnet
+- dotnet (9.0.305)
 
 For env I used `"openssl rand -base64 32"`, as .env key
 
@@ -63,4 +63,13 @@ Don't forget to add the Go into your PATH
 
 > mvn clean install
 mvn spring-boot:run
+
+
+## Dotnet
+
+> dotnet run
+
+### swagger
+
+> http://localhost:8080/swagger
 
