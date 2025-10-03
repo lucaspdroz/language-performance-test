@@ -57,3 +57,10 @@ Don't forget to add the Go into your PATH
 > cargo build
 > cargo run
 
+## Java 
+
+> brew install maven
+
+> mvn clean install
+mvn spring-boot:run
+
