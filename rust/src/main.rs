@@ -1,11 +1,13 @@
 use actix_web::{post, get, web, App, HttpServer, Responder, HttpResponse};
 use serde::{Serialize, Deserialize};
-use sqlx::PgPool;
+use sqlx::{PgPool, Row};
 use dotenvy::dotenv;
 use std::env;
-use chrono::{NaiveDate, NaiveTime};
+use chrono::{NaiveDate, NaiveTime, DateTime, Utc}; // Added DateTime and Utc
+
 use uuid::Uuid;
 
+// Struct for handling incoming request data
 #[derive(Deserialize)]
 struct EncodeRequest {
     date: NaiveDate,
@@ -13,16 +15,22 @@ struct EncodeRequest {
     batch: String,
 }
 
-#[derive(Deserialize)]
-struct DecodeRequest {
-    id: String,
-}
-
+// Struct for handling outgoing response data
 #[derive(Serialize)]
 struct EncodeResponse {
     id: String,
     date: NaiveDate,
     time: NaiveTime,
+    batch: String,
+}
+
+// Temporary struct for reliable SQLX decoding.
+// - 'date' is DateTime<Utc> to handle the driver's TIMESTAMPTZ inference.
+// - 'time' is String to handle the driver's TEXT inference.
+struct DecodedTokenHelper {
+    id: String,
+    date: DateTime<Utc>, 
+    time: String, // CHANGED: Decode as String (TEXT) to bypass `TIME` mismatch error
     batch: String,
 }
 
@@ -33,16 +41,17 @@ async fn encode(
 ) -> impl Responder {
     let id = Uuid::new_v4().to_string();
 
-    let result = sqlx::query!(
+    // Insertion is confirmed to work correctly using `sqlx::query` and `.bind()`.
+    let result = sqlx::query(
         r#"
         INSERT INTO tokens (id, date, time, batch)
         VALUES ($1, $2, $3, $4)
         "#,
-        id,
-        req.date,
-        req.time,
-        req.batch
     )
+    .bind(&id)
+    .bind(req.date)
+    .bind(req.time)
+    .bind(&req.batch)
     .execute(pool.get_ref())
     .await;
 
@@ -54,7 +63,8 @@ async fn encode(
             batch: req.batch.clone(),
         }),
         Err(e) => {
-            println!("DB Error: {:?}", e);
+            // Use eprintln! for error logging
+            eprintln!("DB Error during encode: {:?}", e);
             HttpResponse::InternalServerError().finish()
         }
     }
@@ -67,24 +77,60 @@ async fn decode(
 ) -> impl Responder {
     let id = path.into_inner();
 
-    let row = sqlx::query!(
+    // Fetch the row using simple `sqlx::query`.
+    let row_result = sqlx::query(
         r#"
         SELECT id, date, time, batch FROM tokens
         WHERE id = $1
-        "#,
-        id
+        "#
     )
+    .bind(id)
     .fetch_one(pool.get_ref())
     .await;
 
-    match row {
-        Ok(row) => HttpResponse::Ok().json(EncodeResponse {
-            id: row.id,
-            date: row.date, // agora sem .to_string()
-            time: row.time, // agora sem .to_string()
-            batch: row.batch,
-        }),
-        Err(_) => HttpResponse::NotFound().finish(),
+    match row_result {
+        Ok(row) => {
+            // Encapsulate the struct creation in a block that returns Result.
+            let helper_result: Result<DecodedTokenHelper, sqlx::Error> = (|| {
+                Ok(DecodedTokenHelper {
+                    id: row.try_get("id")?,
+                    date: row.try_get("date")?, 
+                    time: row.try_get("time")?, // Retrieves time as String
+                    batch: row.try_get("batch")?,
+                })
+            })(); // immediately executed closure
+
+            match helper_result {
+                Ok(helper) => {
+                    // Manual conversion: Extract NaiveDate and parse NaiveTime from String
+                    let time_naive = match NaiveTime::parse_from_str(&helper.time, "%H:%M:%S") {
+                        Ok(t) => t,
+                        Err(e) => {
+                            eprintln!("Time parsing error for '{}': {:?}", helper.time, e);
+                            return HttpResponse::InternalServerError().finish();
+                        }
+                    };
+
+                    HttpResponse::Ok().json(EncodeResponse {
+                        id: helper.id,
+                        date: helper.date.date_naive(), // Use .date_naive() to get NaiveDate
+                        time: time_naive, // Use the manually parsed time
+                        batch: helper.batch,
+                    })
+                },
+                Err(e) => {
+                    // If any try_get failed
+                    eprintln!("DB Decode Error (try_get failed with manual time type): {:?}", e);
+                    HttpResponse::InternalServerError().finish()
+                }
+            }
+        },
+        // Handle RowNotFound specifically for a 404 response
+        Err(sqlx::Error::RowNotFound) => HttpResponse::NotFound().finish(),
+        Err(e) => {
+            eprintln!("DB Error during decode (fetch_one failed): {:?}", e);
+            HttpResponse::InternalServerError().finish()
+        }
     }
 }
 
