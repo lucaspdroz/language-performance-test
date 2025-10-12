@@ -31,6 +31,12 @@ retorna {"id":"..."}
 
 Don't forget to add the Go into your PATH
 
+```bash
+export ENCRYPTION_KEY="sYD9OD3ufrVAYjcnoCZL8EfztqKGfWJr90pvlUurPu0="
+export DATABASE_URL="postgres://postgres:postgres@localhost:5432/api_go?sslmode=disable"
+
+```
+
 > go mod init api_go
 
 --- don't run ---
