@@ -18,9 +18,10 @@ import (
 
 	"gorm.io/driver/postgres"
 	"gorm.io/gorm"
+
+	_ "api_go/docs"
+
 )
-
-
 
 // Token model
 type Token struct {
